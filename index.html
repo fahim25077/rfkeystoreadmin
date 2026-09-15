@@ -153,6 +153,25 @@
     .toast.show{transform:none;opacity:1}.toast.success{border-color:rgba(16,185,129,.28);box-shadow:0 14px 35px rgba(16,185,129,.10)}.toast.danger{border-color:rgba(239,68,68,.3);box-shadow:0 14px 35px rgba(239,68,68,.10)}
     .fa-spin{animation:spin 1s linear infinite}
 
+    .payment-card{cursor:pointer;transition:.18s ease}
+    .payment-card:hover{transform:translateY(-1px);border-color:rgba(96,165,250,.28);background:rgba(59,130,246,.045)}
+    .payment-card-main{display:flex;align-items:center;gap:12px;min-width:0;flex:1}
+    .payment-method-icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:rgba(59,130,246,.12);color:#78b4ff;flex:0 0 auto}
+    .payment-card-info{min-width:0}.payment-card-info b{display:block;font-size:.76rem}.payment-card-info .muted{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .payment-card-right{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}.payment-actions{display:flex;gap:6px}.payment-actions button{padding:8px 10px;border-radius:9px;font-size:.63rem;font-weight:800}.payment-open-btn{background:rgba(255,255,255,.055);border:1px solid var(--line2);color:#dce4f1}.payment-approve-btn{background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.26);color:#69e3b8}.payment-reject-btn{background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.25);color:#ff8f8f}
+    .payment-status-pending{background:rgba(245,158,11,.10);color:#f9c35d;border-color:rgba(245,158,11,.2)}
+    .payment-status-accepted{background:rgba(16,185,129,.10);color:#69e3b8;border-color:rgba(16,185,129,.18)}
+    .payment-status-rejected{background:rgba(239,68,68,.10);color:#ff8f8f;border-color:rgba(239,68,68,.18)}
+    .payment-empty{padding:20px;text-align:center;color:#7e8ba3;font-size:.7rem;border:1px dashed var(--line2);border-radius:14px}
+    .payment-modal{position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;padding:18px}.payment-modal.show{display:flex}
+    .payment-modal-backdrop{position:absolute;inset:0;background:rgba(2,4,10,.78);backdrop-filter:blur(10px)}
+    .payment-modal-card{position:relative;z-index:1;width:min(760px,100%);max-height:92vh;overflow:auto;background:linear-gradient(145deg,rgba(14,19,32,.98),rgba(8,12,22,.98));border:1px solid var(--line2);border-radius:22px;box-shadow:0 28px 90px rgba(0,0,0,.55);padding:20px;animation:pop .2s ease}
+    .payment-modal-close,.image-viewer-close{position:absolute;top:13px;right:13px;width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.06);border:1px solid var(--line);color:#d9e1ef;z-index:4}.payment-modal-head{display:flex;align-items:flex-start;justify-content:space-between;gap:15px;padding-right:48px;margin-bottom:15px}.payment-modal-head h2{margin-top:5px;font-size:1.12rem}
+    .payment-detail-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.payment-detail{padding:12px;border:1px solid var(--line);border-radius:13px;background:rgba(255,255,255,.025)}.payment-detail span{display:block;color:#7f8ba1;font-size:.57rem;text-transform:uppercase;letter-spacing:.08em;font-weight:800}.payment-detail b{display:block;margin-top:4px;font-size:.74rem;word-break:break-word}
+    .payment-screenshot-wrap{margin-top:14px;border:1px solid var(--line);border-radius:17px;background:rgba(255,255,255,.02);padding:12px}.payment-image-button{width:100%;display:block;border-radius:13px;overflow:hidden;background:#03050a;border:1px solid var(--line);cursor:zoom-in}.payment-image-button img{display:block;width:100%;max-height:420px;object-fit:contain;background:#03050a}.payment-action-row{display:flex;gap:9px;justify-content:flex-end;margin-top:14px}.payment-action-row .btn{min-width:135px}
+    .image-viewer{position:fixed;inset:0;z-index:150;display:none;align-items:center;justify-content:center;padding:22px;background:rgba(0,0,0,.94)}.image-viewer.show{display:flex}.image-viewer img{max-width:96vw;max-height:92vh;object-fit:contain;border-radius:8px}.image-viewer-close{top:15px;right:15px;background:rgba(255,255,255,.08)}
+    @media (max-width:560px){.payment-detail-grid{grid-template-columns:1fr}.payment-modal-card{padding:15px;border-radius:18px}.payment-modal-head{padding-right:42px}.payment-action-row{display:grid;grid-template-columns:1fr 1fr}.payment-action-row .btn{min-width:0}.payment-card-right{width:100%;justify-content:space-between}.payment-actions{width:100%}.payment-actions button{flex:1}}
+
     /* Mobile */
     @media (max-width:1100px){
       .layout{grid-template-columns:205px minmax(0,1fr)}
@@ -190,6 +209,26 @@
 
 <body>
   <div id="toast" class="toast"></div>
+  <div id="payment-modal" class="payment-modal" aria-hidden="true">
+    <div class="payment-modal-backdrop" onclick="closePaymentModal()"></div>
+    <div class="payment-modal-card" role="dialog" aria-modal="true" aria-labelledby="payment-modal-title">
+      <button class="payment-modal-close" onclick="closePaymentModal()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      <div class="payment-modal-head">
+        <div><div class="eyebrow accent">PAYMENT REVIEW</div><h2 id="payment-modal-title">Payment Details</h2><p id="payment-modal-sub" class="sub"></p></div>
+        <span id="payment-modal-status" class="status-chip">PENDING</span>
+      </div>
+      <div id="payment-modal-body" class="payment-detail-grid"></div>
+      <div class="payment-screenshot-wrap">
+        <div class="card-head"><div><h3>Payment Screenshot</h3><p class="muted">Tap the image to view it full screen.</p></div></div>
+        <button id="payment-image-button" class="payment-image-button" onclick="openScreenshotFullscreen()"><img id="payment-modal-image" alt="Payment screenshot"></button>
+      </div>
+      <div id="payment-modal-actions" class="payment-action-row"></div>
+    </div>
+  </div>
+  <div id="image-viewer" class="image-viewer" aria-hidden="true">
+    <button class="image-viewer-close" onclick="closeScreenshotFullscreen()" aria-label="Close image"><i class="fa-solid fa-xmark"></i></button>
+    <img id="fullscreen-payment-image" alt="Full payment screenshot">
+  </div>
 
   <!-- Login -->
   <section id="loginBox" class="login-shell panel active">
@@ -254,7 +293,7 @@
           <div class="side-label">CONTROL CENTER</div>
           <button class="nav-item active" data-tab="dashboard"><i class="fa-solid fa-grid-2"></i><span>Dashboard</span></button>
           <button class="nav-item" data-tab="groups"><i class="fa-solid fa-users"></i><span>Groups</span></button>
-          <button class="nav-item" data-tab="payment"><i class="fa-solid fa-credit-card"></i><span>Payments</span></button>
+          <button class="nav-item" data-tab="payment"><i class="fa-solid fa-credit-card"></i><span>Payments</span><b id="nav-pending-badge" class="nav-badge">0</b></button>
 
           <div class="side-label spaced">COMMERCE</div>
           <button class="nav-item" data-tab="products"><i class="fa-solid fa-box-open"></i><span>Products</span></button>
@@ -398,7 +437,7 @@
           </div>
 
           <div class="inner-card">
-            <div class="card-head"><div><h3>Pending Payments</h3><p class="muted">Latest payment submissions awaiting review.</p></div><span class="mini-tag">LAST 80</span></div>
+            <div class="card-head"><div><h3>Pending Payments</h3><p class="muted">Open a payment to view method, amount, ID, time and screenshot. Approve or reject directly from this panel.</p></div><span id="pending-count-tag" class="mini-tag">0 PENDING</span></div>
             <div id="pending-list" class="list-stack"></div>
           </div>
         </section>
@@ -580,7 +619,7 @@ function doLogin(){
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('#app .panel').forEach(x=>x.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active')}
-function initApp(){listenGroups();listenBkash();listenQR();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks()}
+function initApp(){listenGroups();listenBkash();listenQR();listenPaymentUsers();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks()}
 
 const v=id=>document.getElementById(id).value.trim();
 const yn=id=>document.getElementById(id).value==='true';
@@ -632,9 +671,97 @@ function listenReferral(){
     document.getElementById('r-bot').value=x.bot_username||'';
   });
 }
-function listenPending(){db.ref(ROOT+'/Pending_Payments').limitToLast(80).on('value',s=>{const l=document.getElementById('pending-list');l.innerHTML='';Object.entries(s.val()||{}).reverse().forEach(([id,p])=>{l.innerHTML+=`<div class="card row"><div><b>${esc(String(p.user_id))}</b><div class="muted">${esc(p.amount)} ${esc(p.country)} • ${esc(p.status||'')}</div></div><span class="badge ${p.status==='pending'?'pending':p.status==='accepted'?'on':'off'}">${esc(p.status||'')}</span></div>`})})}
+let pendingCache={};
+let paymentUsers={};
+let currentPaymentId=null;
+function paymentMethod(p){return p.method || (String(p.country||'').toUpperCase()==='BD' ? 'bKash' : 'QR')}
+function paymentMethodIcon(method){const m=String(method||'').toLowerCase();if(m.includes('bkash'))return 'fa-mobile-screen-button';if(m.includes('paytm'))return 'fa-wallet';if(m.includes('qr'))return 'fa-qrcode';return 'fa-credit-card'}
+function paymentStatusClass(status){const s=String(status||'pending').toLowerCase();return s==='accepted'?'payment-status-accepted':s==='rejected'?'payment-status-rejected':'payment-status-pending'}
+function paymentStatusLabel(status){const s=String(status||'pending').toLowerCase();return s==='accepted'?'APPROVED':s==='rejected'?'REJECTED':'PENDING'}
+function paymentTime(p){return p.timestamp ? new Date(p.timestamp).toLocaleString() : '—'}
+function userDisplayName(uid){const u=pendingCache.__users&&pendingCache.__users[uid];return u?.name || u?.username || u?.first_name || 'User '+uid}
+function renderPendingPayments(data){
+  const l=document.getElementById('pending-list');
+  const entries=Object.entries(data||{}).filter(([k,v])=>v&&typeof v==='object').reverse();
+  pendingCache={...(data||{})};
+  const pendingCount=entries.filter(([,p])=>String(p.status||'').toLowerCase()==='pending').length;
+  document.getElementById('pending-count-tag').textContent=pendingCount+' PENDING';
+  document.getElementById('nav-pending-badge').textContent=pendingCount;
+  document.getElementById('nav-pending-badge').style.display=pendingCount?'inline-flex':'none';
+  if(!entries.length){l.innerHTML='<div class="payment-empty"><i class="fa-regular fa-circle-check"></i><br><br>No payment records found.</div>';return}
+  l.innerHTML=entries.map(([id,p])=>{
+    const method=paymentMethod(p), status=String(p.status||'pending').toLowerCase();
+    const u=paymentUsers[String(p.user_id||'')]||{};
+    const name=esc(p.name||p.username||u.name||u.username||u.first_name||('User '+String(p.user_id||'')));
+    return `<div class="card payment-card" onclick="openPaymentModal('${esc(id)}')">
+      <div class="payment-card-main">
+        <div class="payment-method-icon"><i class="fa-solid ${paymentMethodIcon(method)}"></i></div>
+        <div class="payment-card-info"><b>${name}</b><div class="muted">${esc(method)} • ${esc(String(p.amount??'—'))} ${esc(p.country==='BD'?'BDT':'INR')} • ${esc(paymentTime(p))}</div></div>
+      </div>
+      <div class="payment-card-right">
+        <span class="status-chip ${paymentStatusClass(status)}">${paymentStatusLabel(status)}</span>
+        <div class="payment-actions" onclick="event.stopPropagation()">
+          <button class="payment-open-btn" onclick="openPaymentModal('${esc(id)}')"><i class="fa-solid fa-eye"></i> View</button>
+          ${status==='pending'?`<button class="payment-approve-btn" onclick="panelPaymentDecision('${esc(id)}','accepted',event)"><i class="fa-solid fa-check"></i></button><button class="payment-reject-btn" onclick="panelPaymentDecision('${esc(id)}','rejected',event)"><i class="fa-solid fa-xmark"></i></button>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+function listenPaymentUsers(){db.ref(ROOT+'/Users').on('value',s=>{paymentUsers=s.val()||{};renderPendingPayments(pendingCache)});}
+function listenPending(){
+  db.ref(ROOT+'/Pending_Payments').limitToLast(80).on('value',s=>renderPendingPayments(s.val()||{}));
+}
+function openPaymentModal(id){
+  const p=pendingCache[id]; if(!p)return; currentPaymentId=id;
+  const method=paymentMethod(p), status=String(p.status||'pending').toLowerCase();
+  document.getElementById('payment-modal-title').textContent=(p.name||p.username||'Payment')+' — '+String(p.amount??'—')+' '+(p.country==='BD'?'BDT':'INR');
+  document.getElementById('payment-modal-sub').textContent='Request ID: '+id;
+  const statusEl=document.getElementById('payment-modal-status');statusEl.className='status-chip '+paymentStatusClass(status);statusEl.textContent=paymentStatusLabel(status);
+  const u=paymentUsers[String(p.user_id||'')]||{};
+  const details=[
+    ['Name',p.name||p.username||u.name||u.username||u.first_name||'Not provided'],['Username',p.username||u.username||'—'],['User ID',p.user_id||'—'],['Method',method],
+    ['Country / Currency',p.country==='BD'?'Bangladesh / BDT':'India / INR'],['Amount',String(p.amount??'—')+' '+(p.country==='BD'?'BDT':'INR')],
+    ['Submitted',paymentTime(p)],['Request ID',id],['Reviewed By',p.reviewed_by||'Not reviewed'],['Reviewed At',p.reviewed_at||'—']
+  ];
+  document.getElementById('payment-modal-body').innerHTML=details.map(([a,b])=>`<div class="payment-detail"><span>${esc(a)}</span><b>${esc(String(b))}</b></div>`).join('');
+  const img=document.getElementById('payment-modal-image');img.src=p.screenshot_url||'';img.style.display=p.screenshot_url?'block':'none';
+  document.getElementById('payment-image-button').style.display=p.screenshot_url?'block':'none';
+  const actions=document.getElementById('payment-modal-actions');
+  actions.innerHTML=status==='pending'?`<button class="btn btn-danger" onclick="panelPaymentDecision('${esc(id)}','rejected')"><i class="fa-solid fa-xmark"></i> Reject Payment</button><button class="btn btn-primary" style="background:linear-gradient(135deg,#059669,#10b981)" onclick="panelPaymentDecision('${esc(id)}','accepted')"><i class="fa-solid fa-check"></i> Approve Payment</button>`:'<span class="muted">This payment has already been reviewed.</span>';
+  document.getElementById('payment-modal').classList.add('show');document.getElementById('payment-modal').setAttribute('aria-hidden','false');document.body.style.overflow='hidden';
+}
+function closePaymentModal(){document.getElementById('payment-modal').classList.remove('show');document.getElementById('payment-modal').setAttribute('aria-hidden','true');document.body.style.overflow=''}
+function openScreenshotFullscreen(){const src=document.getElementById('payment-modal-image').src;if(!src)return;document.getElementById('fullscreen-payment-image').src=src;document.getElementById('image-viewer').classList.add('show');document.getElementById('image-viewer').setAttribute('aria-hidden','false')}
+function closeScreenshotFullscreen(){document.getElementById('image-viewer').classList.remove('show');document.getElementById('image-viewer').setAttribute('aria-hidden','true')}
+async function panelPaymentDecision(id,action,event){
+  if(event){event.stopPropagation();event.preventDefault()}
+  const p=pendingCache[id];if(!p||String(p.status||'pending')!=='pending')return showToast('This payment is already handled.','danger');
+  const word=action==='accepted'?'approve':'reject';
+  if(!confirm('Are you sure you want to '+word+' this payment?'))return;
+  try{
+    if(action==='accepted'){
+      const uid=String(p.user_id||'');if(!uid)return showToast('User ID is missing.','danger');
+      const userSnap=await db.ref(ROOT+'/Users/'+uid).once('value');const u=userSnap.val()||{};
+      const field=String(p.country||'').toUpperCase()==='BD'?'balance_bdt':'balance_inr';
+      const current=parseFloat(u[field]||0), amount=parseFloat(p.amount||0);
+      if(!Number.isFinite(amount)||amount<=0)return showToast('Invalid payment amount.','danger');
+      const updates={};const newBalance=Math.round((current+amount)*100)/100;
+      updates[`${ROOT}/Pending_Payments/${id}/status`]='accepted';
+      updates[`${ROOT}/Pending_Payments/${id}/reviewed_at`]=new Date().toISOString();
+      updates[`${ROOT}/Pending_Payments/${id}/reviewed_by`]='Admin Panel';
+      await db.ref().update({...updates,[`${ROOT}/Users/${uid}/${field}`]:newBalance});
+      showToast('Payment approved and balance updated.','success');
+    }else{
+      const updates={status:'rejected',reviewed_at:new Date().toISOString(),reviewed_by:'Admin Panel'};
+      await db.ref(ROOT+'/Pending_Payments/'+id).update(updates);
+      showToast('Payment rejected.','success');
+    }
+    closePaymentModal();
+  }catch(e){showToast('Action failed: '+e.message,'danger')}
+}
 
-function listenStats(){db.ref(ROOT+'/Users').on('value',s=>document.getElementById('st-users').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Orders').on('value',s=>document.getElementById('st-orders').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Pending_Payments').on('value',s=>{const d=s.val()||{};document.getElementById('st-pending').textContent=Object.values(d).filter(x=>x.status==='pending').length})}
+function listenStats(){db.ref(ROOT+'/Users').on('value',s=>document.getElementById('st-users').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Orders').on('value',s=>document.getElementById('st-orders').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Pending_Payments').on('value',s=>{const d=s.val()||{};const n=Object.values(d).filter(x=>String(x.status||'').toLowerCase()==='pending').length;document.getElementById('st-pending').textContent=n;const b=document.getElementById('nav-pending-badge');if(b){b.textContent=n;b.style.display=n?'inline-flex':'none'}})}
 
 function saveAdminContact(){db.ref(ROOT+'/Admin_Contact').set(v('s-admincontact'))}
 function listenAdminContact(){db.ref(ROOT+'/Admin_Contact').on('value',s=>document.getElementById('s-admincontact').value=s.val()||'')}
@@ -676,6 +803,7 @@ function listenDownloadLinks(){
 
 function removeNode(path){if(confirm('Delete this item?'))db.ref(path).remove()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeScreenshotFullscreen();closePaymentModal()}});
 switchTab('dashboard')
   </script>
 
