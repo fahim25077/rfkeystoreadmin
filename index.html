@@ -511,34 +511,34 @@
 
         <!-- Files -->
         <section class="panel page-card" id="tab-files">
-          <div class="page-head"><div><div class="eyebrow accent">STORAGE</div><h2>APK & Video</h2><p class="sub">Upload release files directly to the configured bot server.</p></div></div>
-          <div class="info-banner"><i class="fa-solid fa-server"></i><span>Uploads go to the PythonAnywhere bot server, not Firebase.</span></div>
+          <div class="page-head"><div><div class="eyebrow accent">DOWNLOAD LINKS</div><h2>APK & Set Up Video</h2><p class="sub">Add the three external links used by the bot. No APK or video file is uploaded to the bot server.</p></div></div>
+          <div class="info-banner"><i class="fa-solid fa-link"></i><span>Paste a direct HTTPS/HTTP link for each item. The bot will show a clickable button using these saved links.</span></div>
 
           <div class="upload-grid">
             <div class="upload-card">
-              <div class="upload-card-head"><span class="upload-icon purple"><i class="fa-brands fa-android"></i></span><div><h3>AIM AI Engine APK</h3><span class="muted">Android package</span></div></div>
-              <div class="upload-box"><input id="apk-mi-file" type="file" accept=".apk"><i class="fa-solid fa-cloud-arrow-up"></i><b>Choose APK file</b><span>Drop or browse</span></div>
-              <button class="btn btn-primary btn-wide" onclick="uploadApk('mi')"><i class="fa-solid fa-upload"></i> Upload APK</button>
-              <div id="apk-mi-status" class="upload-status muted"></div>
+              <div class="upload-card-head"><span class="upload-icon purple"><i class="fa-brands fa-android"></i></span><div><h3>Aim Ai Engine Apk</h3><span class="muted">APK download link</span></div></div>
+              <div class="field"><label>Download URL</label><input id="link-aim-ai" type="url" placeholder="https://example.com/aim-ai-engine.apk"></div>
+              <button class="btn btn-primary btn-wide" onclick="saveDownloadLinks()"><i class="fa-solid fa-floppy-disk"></i> Save Links</button>
+              <div id="link-aim-ai-status" class="upload-status muted"></div>
             </div>
 
             <div class="upload-card">
-              <div class="upload-card-head"><span class="upload-icon blue"><i class="fa-brands fa-android"></i></span><div><h3>Crampul APK</h3><span class="muted">Android package</span></div></div>
-              <div class="upload-box"><input id="apk-crampul-file" type="file" accept=".apk"><i class="fa-solid fa-cloud-arrow-up"></i><b>Choose APK file</b><span>Drop or browse</span></div>
-              <button class="btn btn-primary btn-wide" onclick="uploadApk('crampul')"><i class="fa-solid fa-upload"></i> Upload APK</button>
-              <div id="apk-crampul-status" class="upload-status muted"></div>
+              <div class="upload-card-head"><span class="upload-icon blue"><i class="fa-brands fa-android"></i></span><div><h3>Carrom Pool Apk</h3><span class="muted">APK download link</span></div></div>
+              <div class="field"><label>Download URL</label><input id="link-carrom" type="url" placeholder="https://example.com/carrom-pool.apk"></div>
+              <button class="btn btn-primary btn-wide" onclick="saveDownloadLinks()"><i class="fa-solid fa-floppy-disk"></i> Save Links</button>
+              <div id="link-carrom-status" class="upload-status muted"></div>
             </div>
 
             <div class="upload-card">
-              <div class="upload-card-head"><span class="upload-icon amber"><i class="fa-solid fa-video"></i></span><div><h3>Setup Video</h3><span class="muted">Video guide</span></div></div>
-              <div class="upload-box"><input id="video-file" type="file" accept="video/*"><i class="fa-solid fa-film"></i><b>Choose video file</b><span>Drop or browse</span></div>
-              <button class="btn btn-primary btn-wide" onclick="uploadVideo()"><i class="fa-solid fa-upload"></i> Upload Video</button>
-              <div id="video-status" class="upload-status muted"></div>
+              <div class="upload-card-head"><span class="upload-icon amber"><i class="fa-solid fa-video"></i></span><div><h3>Set Up Video</h3><span class="muted">Setup video link</span></div></div>
+              <div class="field"><label>Video URL</label><input id="link-setup" type="url" placeholder="https://youtube.com/watch?v=..."></div>
+              <button class="btn btn-primary btn-wide" onclick="saveDownloadLinks()"><i class="fa-solid fa-floppy-disk"></i> Save Links</button>
+              <div id="link-setup-status" class="upload-status muted"></div>
             </div>
           </div>
 
           <div class="inner-card">
-            <div class="card-head"><div><h3>Storage Status</h3><p class="muted">Current server file state.</p></div><button class="btn btn-secondary small-btn" onclick="checkStorage()"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+            <div class="card-head"><div><h3>Current Links</h3><p class="muted">These are the exact URLs currently used by the bot.</p></div><button class="btn btn-secondary small-btn" onclick="listenDownloadLinks()"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
             <div id="storage-status" class="list-stack"></div>
           </div>
         </section>
@@ -580,7 +580,7 @@ function doLogin(){
 }
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('#app .panel').forEach(x=>x.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active')}
-function initApp(){listenGroups();listenBkash();listenQR();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog()}
+function initApp(){listenGroups();listenBkash();listenQR();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks()}
 
 const v=id=>document.getElementById(id).value.trim();
 const yn=id=>document.getElementById(id).value==='true';
@@ -639,9 +639,40 @@ function listenStats(){db.ref(ROOT+'/Users').on('value',s=>document.getElementBy
 function saveAdminContact(){db.ref(ROOT+'/Admin_Contact').set(v('s-admincontact'))}
 function listenAdminContact(){db.ref(ROOT+'/Admin_Contact').on('value',s=>document.getElementById('s-admincontact').value=s.val()||'')}
 
-async function uploadApk(which){const inputId=which==='mi'?'apk-mi-file':'apk-crampul-file';const statusId=which==='mi'?'apk-mi-status':'apk-crampul-status';const f=document.getElementById(inputId).files[0];if(!f)return alert('Choose APK');const e=document.getElementById(statusId);e.textContent='Uploading...';const fd=new FormData();fd.append('apk',f);fd.append('key',ADMIN_PANEL_SECRET);try{const r=await fetch(BOT_SERVER_URL+'/admin/upload_apk?which='+which+'&key='+encodeURIComponent(ADMIN_PANEL_SECRET),{method:'POST',body:fd}).then(x=>x.json());e.textContent=r.ok?'Uploaded ✅':'Failed: '+r.error}catch(err){e.textContent='Failed: '+err.message}}
-async function uploadVideo(){const f=document.getElementById('video-file').files[0];if(!f)return alert('Choose video');const e=document.getElementById('video-status');e.textContent='Uploading...';const fd=new FormData();fd.append('video',f);fd.append('key',ADMIN_PANEL_SECRET);try{const r=await fetch(BOT_SERVER_URL+'/admin/upload_video?key='+encodeURIComponent(ADMIN_PANEL_SECRET),{method:'POST',body:fd}).then(x=>x.json());e.textContent=r.ok?'Uploaded ✅':'Failed: '+r.error}catch(err){e.textContent='Failed: '+err.message}}
-async function checkStorage(){const e=document.getElementById('storage-status');e.textContent='Loading...';try{const r=await fetch(BOT_SERVER_URL+'/admin/storage_status?key='+encodeURIComponent(ADMIN_PANEL_SECRET)).then(x=>x.json());e.innerHTML=r.ok?Object.entries(r.files).map(([k,v])=>`<div class="card row"><b>${k}</b><span class="muted">${v.exists?v.size_mb+' MB':'Not uploaded'}</span></div>`).join(''):'Failed: '+r.error}catch(err){e.textContent='Failed: '+err.message}}
+function validLink(url){return /^(https?:\/\/)/i.test(String(url||'').trim())}
+function saveDownloadLinks(){
+  const aim=v('link-aim-ai'), carrom=v('link-carrom'), setup=v('link-setup');
+  if(aim && !validLink(aim)) return alert('Aim Ai Engine Apk link must start with http:// or https://');
+  if(carrom && !validLink(carrom)) return alert('Carrom Pool Apk link must start with http:// or https://');
+  if(setup && !validLink(setup)) return alert('Set Up Video link must start with http:// or https://');
+  db.ref(ROOT+'/Download_Links').set({
+    aim_ai_engine_apk:aim,
+    carrom_pool_apk:carrom,
+    setup_video:setup,
+    updated_at:new Date().toISOString()
+  }).then(()=>{
+    document.getElementById('link-aim-ai-status').textContent='Saved ✅';
+    document.getElementById('link-carrom-status').textContent='Saved ✅';
+    document.getElementById('link-setup-status').textContent='Saved ✅';
+    listenDownloadLinks();
+  }).catch(e=>{
+    document.getElementById('link-aim-ai-status').textContent='Failed: '+e.message;
+  });
+}
+function listenDownloadLinks(){
+  db.ref(ROOT+'/Download_Links').once('value').then(s=>{
+    const x=s.val()||{};
+    document.getElementById('link-aim-ai').value=x.aim_ai_engine_apk||'';
+    document.getElementById('link-carrom').value=x.carrom_pool_apk||'';
+    document.getElementById('link-setup').value=x.setup_video||'';
+    const rows=[
+      ['Aim Ai Engine Apk',x.aim_ai_engine_apk],
+      ['Carrom Pool Apk',x.carrom_pool_apk],
+      ['Set Up Video',x.setup_video]
+    ];
+    document.getElementById('storage-status').innerHTML=rows.map(([label,url])=>`<div class="card row"><div><b>${esc(label)}</b><div class="muted">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`:'Not configured'}</div></div><span class="status-chip">${url?'Ready':'Missing'}</span></div>`).join('');
+  }).catch(e=>document.getElementById('storage-status').textContent='Failed: '+e.message);
+}
 
 function removeNode(path){if(confirm('Delete this item?'))db.ref(path).remove()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
