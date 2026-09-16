@@ -441,9 +441,7 @@
             </div>
 
             <div class="inner-card">
-              <div class="card-head"><div><h3>India — Square</h3><p class="muted">Set the Square ID/number and optional QR.</p></div><span class="mini-tag">IN</span></div>
-               <div class="form-grid"><div class="field"><label>Square ID / Number</label><input id="in-square" placeholder="Square account / number"></div></div>
-               <button class="btn btn-secondary" onclick="saveSquare()"><i class="fa-solid fa-floppy-disk"></i> Save Square</button>
+              <div class="card-head"><div><h3>India — QR Payment</h3><p class="muted">Upload the QR image used by Indian buyers.</p></div><span class="mini-tag">IN</span></div>
               <div class="upload-box compact">
                 <i class="fa-solid fa-qrcode"></i>
                 <input id="in-qr-file" type="file" accept="image/*">
@@ -652,8 +650,13 @@ function showPanelBootError(msg){
   const box=document.getElementById('loginBox');
   if(box){ box.style.display='flex'; const note=box.querySelector('.login-note span'); if(note) note.textContent=msg; }
 }
-const firebaseConfig={apiKey:"AIzaSyAZDle1IozrEpOdVE9nggFB_j1ZnEzrdxE",databaseURL:"https://rfxaim-default-rtdb.firebaseio.com"};
-firebase.initializeApp(firebaseConfig);
+const firebaseConfig={
+  apiKey:"AIzaSyAZDle1IozrEpOdVE9nggFB_j1ZnEzrdxE",
+  authDomain:"rfxaim.firebaseapp.com",
+  projectId:"rfxaim",
+  databaseURL:"https://rfxaim-default-rtdb.firebaseio.com"
+};
+if(!firebase.apps.length) firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(),db=firebase.database(),ROOT="Sell_Bot";
 const IMGBB_API_KEY="aa351759a7bb654d77acc9a74535458c";
 const BOT_SERVER_URL=(window.RF_BOT_SERVER_URL||window.location.origin||"").replace(/\/$/,"");
@@ -661,12 +664,28 @@ let selectedUserId=null, allUsersCache={};
 let broadcastCampaignId=null, broadcastLastText='';
 
 async function doLogin(){
-  const email=document.getElementById('loginEmail').value.trim(),pass=document.getElementById('loginPass').value;
-  if(!email||!pass)return showToast('Enter email and password.','danger');
+  const email=document.getElementById('loginEmail').value.trim();
+  const pass=document.getElementById('loginPass').value;
+  const btn=document.querySelector('#loginBox .btn-primary');
+  if(!email||!pass){showToast('Enter email and password.','danger');return;}
+  if(btn){btn.disabled=true;btn.dataset.originalText=btn.innerHTML;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Signing in...';}
   try{
     await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
     await auth.signInWithEmailAndPassword(email,pass);
-  }catch(e){showToast('Login failed: '+e.message,'danger')}
+  }catch(e){
+    const code=e&&e.code||'';
+    const msg={
+      'auth/invalid-credential':'Invalid email or password.',
+      'auth/invalid-email':'Enter a valid email address.',
+      'auth/user-disabled':'This admin account is disabled.',
+      'auth/too-many-requests':'Too many attempts. Please try again later.',
+      'auth/network-request-failed':'Network error. Check your internet connection.',
+      'auth/operation-not-allowed':'Email/password sign-in is disabled in Firebase Authentication.'
+    }[code] || (e&&e.message) || 'Login failed.';
+    showToast(msg,'danger');
+  }finally{
+    if(btn){btn.disabled=false;btn.innerHTML=btn.dataset.originalText||'Login to Dashboard';}
+  }
 }
 function logoutAdmin(){auth.signOut().then(()=>location.reload())}
 auth.onAuthStateChanged(user=>{
@@ -688,6 +707,17 @@ setTimeout(()=>{
     if(note && !auth.currentUser) note.textContent='Ready. Sign in with your Firebase administrator account.';
   }
 },7000);
+window.addEventListener('error',e=>{
+  const msg=e&&e.message?e.message:'Unexpected JavaScript error';
+  console.error('RF Admin Panel error:',e.error||e);
+  if(!auth.currentUser) showPanelBootError('Panel error: '+msg);
+});
+window.addEventListener('unhandledrejection',e=>{
+  const reason=e&&e.reason;
+  const msg=reason&&reason.message?reason.message:String(reason||'Unexpected async error');
+  console.error('RF Admin Panel promise error:',reason);
+  if(!auth.currentUser) showPanelBootError('Panel error: '+msg);
+});
 async function apiFetch(path,options={}){
   const user=auth.currentUser;if(!user)throw new Error('Admin session expired');
   const token=await user.getIdToken();
@@ -702,7 +732,7 @@ let __idle=0;
 setInterval(()=>{if(auth.currentUser && __idle && Date.now()-__idle>45*60*1000){logoutAdmin()}},60000);
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('#app .panel').forEach(x=>x.classList.remove('active'));const panel=document.getElementById('tab-'+name);if(panel)panel.classList.add('active')}
-function initApp(){try{listenGroups();listenBkash();listenNagad();listenQR();listenSquare();listenPaymentUsers();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks();listenUsers();listenMaintenance();searchUsers();}catch(e){console.error(e);showPanelBootError('Panel module initialization failed: '+e.message)}}
+function initApp(){try{listenGroups();listenBkash();listenNagad();listenQR();listenPaymentUsers();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks();listenUsers();listenMaintenance();searchUsers();}catch(e){console.error(e);showPanelBootError('Panel module initialization failed: '+e.message)}}
 
 const v=id=>document.getElementById(id).value.trim();
 const yn=id=>document.getElementById(id).value==='true';
@@ -718,8 +748,6 @@ function listenNagad(){db.ref(ROOT+'/Payment_Methods/BD/nagad_numbers').on('valu
 async function uploadQR(){const f=document.getElementById('in-qr-file').files[0];if(!f)return alert('Choose image');const b64=await toBase64(f);const fd=new FormData();fd.append('key',IMGBB_API_KEY);fd.append('image',b64.split(',')[1]);const r=await fetch('https://api.imgbb.com/1/upload',{method:'POST',body:fd}).then(x=>x.json());if(!r.data)return alert('Upload failed');db.ref(ROOT+'/Payment_Methods/IN/qr_image_url').set(r.data.url);alert('Saved')}
 function toBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 function listenQR(){db.ref(ROOT+'/Payment_Methods/IN/qr_image_url').on('value',s=>{const u=s.val();document.getElementById('in-qr-preview').innerHTML=u?`<img src="${u}" style="width:160px;border-radius:10px;margin-top:10px">`:''})}
-function saveSquare(){const number=v('in-square');db.ref(ROOT+'/Payment_Methods/IN/square_number').set(number);alert('Square details saved')}
-function listenSquare(){db.ref(ROOT+'/Payment_Methods/IN/square_number').on('value',s=>document.getElementById('in-square').value=s.val()||'')}
 
 function savePaymentSettings(){db.ref(ROOT+'/Payment_Settings').set({min_bdt:parseFloat(v('min-bdt')||0),min_inr:parseFloat(v('min-inr')||0),duplicate_guard:true})}
 function listenPaymentSettings(){db.ref(ROOT+'/Payment_Settings').on('value',s=>{const x=s.val()||{};document.getElementById('min-bdt').value=x.min_bdt||0;document.getElementById('min-inr').value=x.min_inr||0})}
