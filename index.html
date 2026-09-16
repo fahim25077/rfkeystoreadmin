@@ -148,6 +148,7 @@
     .editor-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:#b7c3d8;font-size:.68rem;font-weight:700}
     .inline-status{align-self:center;color:#8d9ab0;font-size:.68rem}
     .offer-preview{margin-top:12px}.offer-preview .card{background:linear-gradient(145deg,rgba(59,130,246,.10),rgba(139,92,246,.06));border-color:rgba(96,165,250,.14)}
+    .product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:11px}.product-card{position:relative;padding:15px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(145deg,rgba(59,130,246,.07),rgba(139,92,246,.035));transition:.18s ease;overflow:hidden}.product-card:hover{transform:translateY(-2px);border-color:rgba(96,165,250,.24)}.product-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:9px}.product-icon{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;background:rgba(59,130,246,.13);color:#79b5ff}.product-title{font-weight:800;font-size:.76rem}.product-sub{font-size:.58rem;color:#7f8ba1;margin-top:3px}.price-row{display:flex;gap:7px;flex-wrap:wrap;margin-top:12px}.price-chip{padding:6px 8px;border-radius:9px;background:rgba(255,255,255,.045);border:1px solid var(--line);font-size:.58rem;font-weight:800}.product-actions{display:flex;gap:7px;margin-top:13px}.product-actions button{flex:1}.product-visibility{font-size:.53rem;padding:5px 7px;border-radius:999px;border:1px solid var(--line);font-weight:800}.product-visibility.on{color:#62e2b6;background:rgba(16,185,129,.09)}.product-visibility.off{color:#ffb0b0;background:rgba(239,68,68,.08)}
     .mobile-nav{display:none}
     .toast{position:fixed;right:20px;bottom:20px;z-index:100;min-width:240px;max-width:360px;padding:12px 14px;border-radius:13px;border:1px solid var(--line2);background:rgba(10,14,24,.95);box-shadow:var(--shadow);font-size:.72rem;font-weight:700;transform:translateY(18px);opacity:0;pointer-events:none;transition:.25s ease}
     .toast.show{transform:none;opacity:1}.toast.success{border-color:rgba(16,185,129,.28);box-shadow:0 14px 35px rgba(16,185,129,.10)}.toast.danger{border-color:rgba(239,68,68,.3);box-shadow:0 14px 35px rgba(239,68,68,.10)}
@@ -176,6 +177,7 @@
 
     /* Mobile */
     @media (max-width:1100px){
+      .product-grid{grid-template-columns:1fr 1fr}
       .layout{grid-template-columns:205px minmax(0,1fr)}
       .main{padding:22px}
       .form-grid.four{grid-template-columns:1fr 1fr}
@@ -193,7 +195,7 @@
       .mobile-page-head h1{font-size:1.05rem;margin-top:2px}.date-chip{font-size:.58rem;color:#9aa8bc;border:1px solid var(--line);background:rgba(255,255,255,.035);padding:7px 8px;border-radius:9px}
       .page-head{flex-direction:column;margin-bottom:15px}.page-head h2{font-size:1.23rem}.hero-actions{width:100%}.hero-actions .btn{flex:1}
       .stat-grid{grid-template-columns:1fr}.section-grid,.security-grid,.feature-grid{grid-template-columns:1fr}.quick-grid{grid-template-columns:1fr 1fr}
-      .form-grid,.form-grid.four{grid-template-columns:1fr}.upload-grid{grid-template-columns:1fr}
+      .form-grid,.form-grid.four{grid-template-columns:1fr}.upload-grid{grid-template-columns:1fr}.product-grid{grid-template-columns:1fr}
       .mobile-nav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;height:72px;z-index:60;background:rgba(7,10,18,.95);border-top:1px solid var(--line);backdrop-filter:blur(18px);padding:8px 7px env(safe-area-inset-bottom)}
       .mobile-nav-item{background:transparent;color:#6f7b91;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;font-size:.54rem;font-weight:700}.mobile-nav-item i{font-size:.78rem}.mobile-nav-item.active{color:#7ab3ff;background:rgba(59,130,246,.09)}
       .admin-chip span{display:none}.admin-chip{padding:7px 8px}.topbar-right{gap:6px}
@@ -361,6 +363,7 @@
               <div class="stat-meta"><span>Pending Payments</span><b id="st-pending">0</b><small><i class="fa-solid fa-bolt"></i> Needs review</small></div>
             </div>
           </div>
+          <div id="data-sync-error" class="info-banner" style="display:none;margin-top:12px;border-color:rgba(239,68,68,.24);background:rgba(239,68,68,.06);color:#ffb3b3"><i class="fa-solid fa-triangle-exclamation"></i><span id="data-sync-error-text">Firebase data could not be loaded.</span></div>
 
           <div class="section-grid">
             <div class="inner-card">
@@ -486,7 +489,7 @@
             <button class="btn btn-primary" onclick="addProduct()"><i class="fa-solid fa-plus"></i> Add Product</button>
           </div>
           <div class="list-heading"><h3>Product List</h3><span class="mini-tag">LIVE DATA</span></div>
-          <div id="p-list" class="list-stack"></div>
+          <div id="p-list" class="product-grid"></div>
         </section>
 
         <!-- Offer -->
@@ -698,8 +701,8 @@ let __idle=0;
 ['click','keydown','mousemove','touchstart'].forEach(e=>document.addEventListener(e,()=>{__idle=Date.now()}));
 setInterval(()=>{if(auth.currentUser && __idle && Date.now()-__idle>45*60*1000){logoutAdmin()}},60000);
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
-function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('#app .panel').forEach(x=>x.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active')}
-function initApp(){listenGroups();listenBkash();listenNagad();listenQR();listenSquare();listenPaymentUsers();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks();listenUsers();listenMaintenance();searchUsers();}
+function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('#app .panel').forEach(x=>x.classList.remove('active'));const panel=document.getElementById('tab-'+name);if(panel)panel.classList.add('active')}
+function initApp(){try{listenGroups();listenBkash();listenNagad();listenQR();listenSquare();listenPaymentUsers();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks();listenUsers();listenMaintenance();searchUsers();}catch(e){console.error(e);showPanelBootError('Panel module initialization failed: '+e.message)}}
 
 const v=id=>document.getElementById(id).value.trim();
 const yn=id=>document.getElementById(id).value==='true';
@@ -722,7 +725,8 @@ function savePaymentSettings(){db.ref(ROOT+'/Payment_Settings').set({min_bdt:par
 function listenPaymentSettings(){db.ref(ROOT+'/Payment_Settings').on('value',s=>{const x=s.val()||{};document.getElementById('min-bdt').value=x.min_bdt||0;document.getElementById('min-inr').value=x.min_inr||0})}
 
 function addProduct(){const label=v('p-label');if(!label)return alert('Enter label');db.ref(ROOT+'/Products').push({duration_label:label,duration_days:parseInt(v('p-days')||0),price_bdt:parseFloat(v('p-bdt')||0),price_inr:parseFloat(v('p-inr')||0),visible:true,created_at:new Date().toISOString()});['p-label','p-bdt','p-inr'].forEach(id=>document.getElementById(id).value='');document.getElementById('p-days').value='0'}
-function listenProducts(){db.ref(ROOT+'/Products').on('value',s=>{const l=document.getElementById('p-list');l.innerHTML='';Object.entries(s.val()||{}).forEach(([id,p])=>l.innerHTML+=`<div class="card"><div class="row"><div><b>${esc(p.duration_label)}</b><div class="muted">${p.price_bdt} BDT / ${p.price_inr} INR • ${p.visible===false?'Hidden':'Visible'}</div></div><button class="danger" onclick="removeNode('${ROOT}/Products/${id}')">Delete</button></div></div>`)})}
+function toggleProduct(id,on){return db.ref(ROOT+'/Products/'+id+'/visible').set(!!on)}
+function listenProducts(){db.ref(ROOT+'/Products').on('value',s=>{const l=document.getElementById('p-list'),items=Object.entries(s.val()||{});l.innerHTML=items.length?items.map(([id,p])=>{const vis=p.visible!==false,days=Number(p.duration_days||0);return `<div class="product-card"><div class="product-card-head"><div style="display:flex;gap:10px;align-items:center"><div class="product-icon"><i class="fa-solid fa-cart-shopping"></i></div><div><div class="product-title">${esc(p.duration_label||'Plan')}</div><div class="product-sub">${days?days+' day plan':'Lifetime plan'}</div></div></div><span class="product-visibility ${vis?'on':'off'}">${vis?'VISIBLE':'HIDDEN'}</span></div><div class="price-row"><span class="price-chip">🇧🇩 ${esc(p.price_bdt??0)} BDT</span><span class="price-chip">🇮🇳 ${esc(p.price_inr??0)} INR</span></div><div class="product-actions"><button class="secondary" onclick="toggleProduct('${esc(id)}',${!vis})">${vis?'Hide':'Show'}</button><button class="danger" onclick="removeNode('${ROOT}/Products/${id}')">Delete</button></div></div>`}).join(''):'<div class="payment-empty" style="grid-column:1/-1">No products configured.</div>'},e=>setDataSyncError('Products data failed to load: '+e.message))}
 
 function saveOffer(){const offer={title:v('o-title'),duration_label:v('o-label'),duration_days:parseInt(v('o-days')||0),price_bdt:parseFloat(v('o-bdt')||0),price_inr:parseFloat(v('o-inr')||0),visible:yn('o-visible'),starts_at:iso('o-start'),ends_at:iso('o-end'),updated_at:new Date().toISOString()};if(!offer.title||!offer.duration_label)return alert('Fill title and duration');db.ref(ROOT+'/Latest_Offer').set(offer)}
 function hideOffer(){db.ref(ROOT+'/Latest_Offer/visible').set(false)}
@@ -853,10 +857,11 @@ async function panelPaymentDecision(id,action,event){
   }catch(e){showToast('Action failed: '+e.message,'danger')}
 }
 
-function listenStats(){db.ref(ROOT+'/Users').on('value',s=>document.getElementById('st-users').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Orders').on('value',s=>document.getElementById('st-orders').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Pending_Payments').on('value',s=>{const d=s.val()||{};const n=Object.values(d).filter(x=>String(x.status||'').toLowerCase()==='pending').length;document.getElementById('st-pending').textContent=n;const b=document.getElementById('nav-pending-badge');if(b){b.textContent=n;b.style.display=n?'inline-flex':'none'}})}
+function setDataSyncError(msg){const box=document.getElementById('data-sync-error'),text=document.getElementById('data-sync-error-text');if(!box||!text)return;if(msg){box.style.display='flex';text.textContent=msg;}else{box.style.display='none';}}
+function listenStats(){const usersRef=db.ref(ROOT+'/Users'),ordersRef=db.ref(ROOT+'/Orders'),pendingRef=db.ref(ROOT+'/Pending_Payments');usersRef.on('value',s=>{document.getElementById('st-users').textContent=Object.keys(s.val()||{}).length;setDataSyncError(null)},e=>setDataSyncError('Users data failed to load: '+e.message));ordersRef.on('value',s=>{document.getElementById('st-orders').textContent=Object.keys(s.val()||{}).length;setDataSyncError(null)},e=>setDataSyncError('Orders data failed to load: '+e.message));pendingRef.on('value',s=>{const d=s.val()||{},n=Object.values(d).filter(x=>String(x.status||'').toLowerCase()==='pending').length;document.getElementById('st-pending').textContent=n;const b=document.getElementById('nav-pending-badge');if(b){b.textContent=n;b.style.display=n?'inline-flex':'none'}setDataSyncError(null)},e=>setDataSyncError('Pending payments failed to load: '+e.message));Promise.all([usersRef.once('value'),ordersRef.once('value'),pendingRef.once('value')]).then(([u,o,p])=>{document.getElementById('st-users').textContent=Object.keys(u.val()||{}).length;document.getElementById('st-orders').textContent=Object.keys(o.val()||{}).length;const d=p.val()||{};document.getElementById('st-pending').textContent=Object.values(d).filter(x=>String(x.status||'').toLowerCase()==='pending').length;setDataSyncError(null)}).catch(e=>setDataSyncError('Firebase dashboard data failed to load: '+e.message))}
 
 let adminChatRows = [];
-function listenUsers(){db.ref(ROOT+'/Users').on('value',s=>{allUsersCache=s.val()||{};renderUserResults(allUsersCache);document.getElementById('user-count-tag').textContent=Object.keys(allUsersCache).length+' USERS'})}
+function listenUsers(){db.ref(ROOT+'/Users').on('value',s=>{allUsersCache=s.val()||{};renderUserResults(allUsersCache);document.getElementById('user-count-tag').textContent=Object.keys(allUsersCache).length+' USERS';setDataSyncError(null)},e=>setDataSyncError('User data failed to load: '+e.message))}
 function searchUsers(){const q=v('user-search').toLowerCase();renderUserResults(allUsersCache,q)}
 function renderUserResults(data,q=''){const list=Object.entries(data||{}).filter(([uid,u])=>{const hay=[uid,u?.username,u?.name,u?.first_name,u?.last_name,u?.phone,u?.email].join(' ').toLowerCase();return !q||hay.includes(q)}).slice(0,100);const l=document.getElementById('user-results');l.innerHTML=list.length?list.map(([uid,u])=>`<button class="user-card" onclick="selectUser('${esc(uid)}')"><div class="user-main"><b>${esc(u?.name||u?.username||('User '+uid))}</b><small>ID ${esc(uid)}${u?.username?' • @'+esc(u.username):''}</small></div><div class="user-balances"><span class="balance-pill">৳${Number(u?.balance_bdt||0).toLocaleString()}</span><span class="balance-pill">₹${Number(u?.balance_inr||0).toLocaleString()}</span></div></button>`).join(''):'<div class="payment-empty">No matching users.</div>'}
 async function selectUser(uid){selectedUserId=uid;const u=allUsersCache[uid]||{};document.getElementById('user-detail-empty').style.display='none';document.getElementById('user-detail').style.display='block';document.getElementById('selected-user-sub').textContent=(u?.username?'@'+u.username+' • ':'')+'Telegram ID '+uid;document.getElementById('edit-bdt').value=Number(u.balance_bdt||0);document.getElementById('edit-inr').value=Number(u.balance_inr||0);document.getElementById('selected-user-meta').innerHTML=`<div class="detail-row"><span>Total Orders</span><b>${Number(u.total_orders||0)}</b></div><div class="detail-row"><span>Referral Count</span><b>${Number(u.referral_count||0)}</b></div><div class="detail-row"><span>Created</span><b>${esc(u.created_at||'—')}</b></div><div class="detail-row"><span>State</span><b>${esc(JSON.stringify(u.state||null))}</b></div>`;loadSelectedUserActivity(uid)}
