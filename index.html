@@ -152,6 +152,8 @@
     .toast{position:fixed;right:20px;bottom:20px;z-index:100;min-width:240px;max-width:360px;padding:12px 14px;border-radius:13px;border:1px solid var(--line2);background:rgba(10,14,24,.95);box-shadow:var(--shadow);font-size:.72rem;font-weight:700;transform:translateY(18px);opacity:0;pointer-events:none;transition:.25s ease}
     .toast.show{transform:none;opacity:1}.toast.success{border-color:rgba(16,185,129,.28);box-shadow:0 14px 35px rgba(16,185,129,.10)}.toast.danger{border-color:rgba(239,68,68,.3);box-shadow:0 14px 35px rgba(239,68,68,.10)}
     .fa-spin{animation:spin 1s linear infinite}
+    .maintenance-banner{display:none;margin:0 0 14px;padding:12px 14px;border-radius:15px;border:1px solid rgba(245,158,11,.22);background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(239,68,68,.06));color:#f7d58a;font-size:.72rem;font-weight:700}.maintenance-banner.show{display:flex;align-items:center;gap:9px}
+    .user-searchbar{display:grid;grid-template-columns:1fr auto;gap:9px;margin-bottom:12px}.user-results{display:grid;gap:8px;max-height:420px;overflow:auto}.user-card{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:13px;border:1px solid var(--line);background:rgba(255,255,255,.024);border-radius:14px}.user-main{min-width:0}.user-main b{display:block;font-size:.74rem}.user-main small{display:block;color:#7f8ba1;font-size:.59rem;margin-top:3px;word-break:break-all}.user-balances{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.balance-pill{padding:6px 8px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.035);font-size:.58rem;font-weight:800}.user-detail-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:12px}.user-detail-card{border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.022);padding:14px}.user-detail-card h3{margin-bottom:10px}.detail-list{display:grid;gap:7px}.detail-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:.65rem}.detail-row:last-child{border-bottom:0}.detail-row span{color:#7f8ba1}.detail-row b{text-align:right;word-break:break-word}.auth-actions{display:flex;align-items:center;gap:7px}.topbar-logout{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);color:#ff9d9d;border-radius:10px;padding:7px 9px;font-size:.63rem;font-weight:800}.maintenance-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.02)}.switch{position:relative;width:46px;height:25px}.switch input{opacity:0;width:0;height:0}.slider{position:absolute;inset:0;background:#334155;border-radius:999px;cursor:pointer;transition:.2s}.slider:before{content:"";position:absolute;width:19px;height:19px;left:3px;top:3px;border-radius:50%;background:#fff;transition:.2s}.switch input:checked + .slider{background:#10b981}.switch input:checked + .slider:before{transform:translateX(21px)}
 
     .payment-card{cursor:pointer;transition:.18s ease}
     .payment-card:hover{transform:translateY(-1px);border-color:rgba(96,165,250,.28);background:rgba(59,130,246,.045)}
@@ -281,9 +283,11 @@
           <strong>Advanced Admin</strong>
         </div>
       </div>
-      <div class="topbar-right">
+      <div class="topbar-right auth-actions">
+        <div id="top-maintenance-pill" class="live-pill" style="display:none;color:#f7c76d"><span class="live-dot" style="background:#f59e0b"></span> Maintenance</div>
         <div class="live-pill"><span class="live-dot"></span> Live</div>
-        <div class="admin-chip"><i class="fa-regular fa-user"></i><span>Administrator</span></div>
+        <div class="admin-chip"><i class="fa-regular fa-user"></i><span id="adminEmailLabel">Administrator</span></div>
+        <button class="topbar-logout" onclick="logoutAdmin()"><i class="fa-solid fa-right-from-bracket"></i></button>
       </div>
     </header>
 
@@ -292,6 +296,7 @@
         <div class="sidebar-scroll">
           <div class="side-label">CONTROL CENTER</div>
           <button class="nav-item active" data-tab="dashboard"><i class="fa-solid fa-grid-2"></i><span>Dashboard</span></button>
+          <button class="nav-item" data-tab="users"><i class="fa-solid fa-user-shield"></i><span>Users</span></button>
           <button class="nav-item" data-tab="groups"><i class="fa-solid fa-users"></i><span>Groups</span></button>
           <button class="nav-item" data-tab="payment"><i class="fa-solid fa-credit-card"></i><span>Payments</span><b id="nav-pending-badge" class="nav-badge">0</b></button>
 
@@ -384,6 +389,24 @@
           </div>
         </section>
 
+        <!-- Users -->
+        <section class="panel page-card" id="tab-users">
+          <div class="page-head"><div><div class="eyebrow accent">USER MANAGEMENT</div><h2>Users & Balance Control</h2><p class="sub">Search by Telegram ID, username or name. Update BDT/INR balances and inspect orders and keys.</p></div></div>
+          <div class="form-card">
+            <div class="user-searchbar"><input id="user-search" placeholder="Search Telegram ID / username / name"><button class="btn btn-primary" onclick="searchUsers()"><i class="fa-solid fa-magnifying-glass"></i> Search</button></div>
+            <div id="user-search-status" class="inline-status">Live Firebase user index</div>
+          </div>
+          <div class="user-detail-grid">
+            <div class="inner-card"><div class="card-head"><div><h3>User List</h3><p class="muted">Select a user to manage balance and activity.</p></div><span id="user-count-tag" class="mini-tag">0 USERS</span></div><div id="user-results" class="user-results"></div></div>
+            <div class="inner-card"><div class="card-head"><div><h3>Selected User</h3><p id="selected-user-sub" class="muted">No user selected</p></div><span class="mini-tag">CONTROL</span></div><div id="user-detail-empty" class="payment-empty">Choose a user from the list.</div><div id="user-detail" style="display:none">
+              <div class="form-grid"><div class="field"><label>BDT Balance</label><input id="edit-bdt" type="number" step="0.01"></div><div class="field"><label>INR Balance</label><input id="edit-inr" type="number" step="0.01"></div></div>
+              <button class="btn btn-primary" onclick="saveSelectedUserBalance()"><i class="fa-solid fa-floppy-disk"></i> Update Balance</button>
+              <div id="selected-user-meta" class="detail-list" style="margin-top:13px"></div>
+            </div></div>
+          </div>
+          <div class="section-grid" style="margin-top:12px"><div class="inner-card"><div class="card-head"><div><h3>Selected User Orders</h3><p class="muted">Latest created/purchased records.</p></div></div><div id="selected-user-orders" class="list-stack"></div></div><div class="inner-card"><div class="card-head"><div><h3>Selected User Keys</h3><p class="muted">Activation keys created for this user.</p></div></div><div id="selected-user-keys" class="list-stack"></div></div></div>
+        </section>
+
         <!-- Groups -->
         <section class="panel page-card" id="tab-groups">
           <div class="page-head">
@@ -415,7 +438,9 @@
             </div>
 
             <div class="inner-card">
-              <div class="card-head"><div><h3>India QR</h3><p class="muted">Upload the current payment QR image.</p></div><span class="mini-tag">QR</span></div>
+              <div class="card-head"><div><h3>India — Square</h3><p class="muted">Set the Square ID/number and optional QR.</p></div><span class="mini-tag">IN</span></div>
+               <div class="form-grid"><div class="field"><label>Square ID / Number</label><input id="in-square" placeholder="Square account / number"></div></div>
+               <button class="btn btn-secondary" onclick="saveSquare()"><i class="fa-solid fa-floppy-disk"></i> Save Square</button>
               <div class="upload-box compact">
                 <i class="fa-solid fa-qrcode"></i>
                 <input id="in-qr-file" type="file" accept="image/*">
@@ -427,13 +452,19 @@
           </div>
 
           <div class="inner-card">
-            <div class="card-head"><div><h3>Bangladesh — bKash Numbers</h3><p class="muted">Manage active payment numbers shown to buyers.</p></div><span class="mini-tag">BD</span></div>
+            <div class="card-head"><div><h3>Bangladesh — bKash & Nagad</h3><p class="muted">Manage both payment numbers shown to buyers.</p></div><span class="mini-tag">BD</span></div>
             <div class="form-grid">
               <div class="field"><label>bKash Number</label><input id="bd-number" placeholder="01XXXXXXXXX"></div>
               <div class="field"><label>Label</label><input id="bd-label" placeholder="Personal / Merchant"></div>
             </div>
-            <button class="btn btn-primary" onclick="addBkash()"><i class="fa-solid fa-plus"></i> Add Number</button>
+            <button class="btn btn-primary" onclick="addBkash()"><i class="fa-solid fa-plus"></i> Add bKash</button>
             <div id="bd-list" class="list-stack"></div>
+            <div class="form-grid" style="margin-top:12px">
+              <div class="field"><label>Nagad Number</label><input id="nagad-number" placeholder="01XXXXXXXXX"></div>
+              <div class="field"><label>Label</label><input id="nagad-label" placeholder="Personal / Merchant"></div>
+            </div>
+            <button class="btn btn-secondary" onclick="addNagad()"><i class="fa-solid fa-plus"></i> Add Nagad</button>
+            <div id="nagad-list" class="list-stack"></div>
           </div>
 
           <div class="inner-card">
@@ -589,6 +620,13 @@
             <div class="field"><label>Admin Contact</label><input id="s-admincontact" placeholder="@username or contact number"></div>
             <button class="btn btn-primary" onclick="saveAdminContact()"><i class="fa-solid fa-floppy-disk"></i> Save Admin Contact</button>
           </div>
+          <div class="form-card">
+            <div class="card-head"><div><h3>Bot Maintenance Mode</h3><p class="muted">When enabled, normal users cannot use the bot. Admins remain allowed.</p></div><span id="maintenance-status-chip" class="hero-status">OFF</span></div>
+            <div class="maintenance-toggle"><div><b>Maintenance</b><div class="muted">Show a maintenance notice on every user action.</div></div><label class="switch"><input id="maintenance-enabled" type="checkbox"><span class="slider"></span></label></div>
+            <div class="field" style="margin-top:12px"><label>Maintenance Message</label><input id="maintenance-message" placeholder="Bot is under maintenance right now. Please try again later."></div>
+            <button class="btn btn-primary" onclick="saveMaintenance()"><i class="fa-solid fa-screwdriver-wrench"></i> Save Maintenance Status</button>
+          </div>
+          <div class="info-banner"><i class="fa-solid fa-shield-halved"></i><span>Admin APIs now authenticate with the signed-in Firebase ID token. The old panel secret is no longer embedded in the browser code.</span></div>
         </section>
       </main>
     </div>
@@ -606,20 +644,62 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
   <script>
+let __panelBooted=false;
+function showPanelBootError(msg){
+  const box=document.getElementById('loginBox');
+  if(box){ box.style.display='flex'; const note=box.querySelector('.login-note span'); if(note) note.textContent=msg; }
+}
 const firebaseConfig={apiKey:"AIzaSyAZDle1IozrEpOdVE9nggFB_j1ZnEzrdxE",databaseURL:"https://rfxaim-default-rtdb.firebaseio.com"};
 firebase.initializeApp(firebaseConfig);
 const auth=firebase.auth(),db=firebase.database(),ROOT="Sell_Bot";
 const IMGBB_API_KEY="aa351759a7bb654d77acc9a74535458c";
-const BOT_SERVER_URL="https://YOURUSERNAME.pythonanywhere.com";
-const ADMIN_PANEL_SECRET="rf-admin-9f31ac77-change-me";
+const BOT_SERVER_URL=(window.RF_BOT_SERVER_URL||window.location.origin||"").replace(/\/$/,"");
+let selectedUserId=null, allUsersCache={};
+let broadcastCampaignId=null, broadcastLastText='';
 
-function doLogin(){
+async function doLogin(){
   const email=document.getElementById('loginEmail').value.trim(),pass=document.getElementById('loginPass').value;
-  auth.signInWithEmailAndPassword(email,pass).then(()=>{document.getElementById('loginBox').style.display='none';document.getElementById('app').style.display='block';initApp()}).catch(e=>alert("Login failed: "+e.message));
+  if(!email||!pass)return showToast('Enter email and password.','danger');
+  try{
+    await auth.setPersistence(firebase.auth.Auth.Persistence.SESSION);
+    await auth.signInWithEmailAndPassword(email,pass);
+  }catch(e){showToast('Login failed: '+e.message,'danger')}
 }
+function logoutAdmin(){auth.signOut().then(()=>location.reload())}
+auth.onAuthStateChanged(user=>{
+  if(user){
+    document.getElementById('loginBox').style.display='none';
+    document.getElementById('app').style.display='block';
+    const label=document.getElementById('adminEmailLabel');
+    if(label) label.textContent=user.email||'Administrator';
+    if(!__panelBooted){ __panelBooted=true; initApp(); }
+  }else{
+    __panelBooted=false;
+    document.getElementById('loginBox').style.display='flex';
+    document.getElementById('app').style.display='none';
+  }
+}, err=>{ console.error(err); showPanelBootError('Firebase Authentication could not start. Check your internet connection and Firebase configuration.'); });
+setTimeout(()=>{
+  if(!__panelBooted && document.getElementById('loginBox')){
+    const note=document.querySelector('#loginBox .login-note span');
+    if(note && !auth.currentUser) note.textContent='Ready. Sign in with your Firebase administrator account.';
+  }
+},7000);
+async function apiFetch(path,options={}){
+  const user=auth.currentUser;if(!user)throw new Error('Admin session expired');
+  const token=await user.getIdToken();
+  const headers={...(options.headers||{}),Authorization:'Bearer '+token,'Content-Type':'application/json'};
+  const r=await fetch(BOT_SERVER_URL+path,{...options,headers});
+  const data=await r.json().catch(()=>({ok:false,error:'Invalid server response'}));
+  if(!r.ok||data.ok===false)throw new Error(data.error||('HTTP '+r.status));
+  return data;
+}
+let __idle=0;
+['click','keydown','mousemove','touchstart'].forEach(e=>document.addEventListener(e,()=>{__idle=Date.now()}));
+setInterval(()=>{if(auth.currentUser && __idle && Date.now()-__idle>45*60*1000){logoutAdmin()}},60000);
 document.querySelectorAll('.tab').forEach(t=>t.onclick=()=>switchTab(t.dataset.tab));
 function switchTab(name){document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));document.querySelectorAll('#app .panel').forEach(x=>x.classList.remove('active'));document.getElementById('tab-'+name).classList.add('active')}
-function initApp(){listenGroups();listenBkash();listenQR();listenPaymentUsers();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks()}
+function initApp(){listenGroups();listenBkash();listenNagad();listenQR();listenSquare();listenPaymentUsers();listenProducts();listenOffer();listenPromos();listenPending();listenAdminContact();listenPaymentSettings();listenNotifications();listenReferral();listenStats();listenBroadcastLog();listenDownloadLinks();listenUsers();listenMaintenance();searchUsers();}
 
 const v=id=>document.getElementById(id).value.trim();
 const yn=id=>document.getElementById(id).value==='true';
@@ -628,11 +708,15 @@ const iso=id=>{const x=document.getElementById(id).value;return x?new Date(x).to
 function addGroup(){const name=v('g-name'),link=v('g-link');if(!name||!link)return alert('Fill both fields');db.ref(ROOT+'/Groups').push({name,link});document.getElementById('g-name').value='';document.getElementById('g-link').value=''}
 function listenGroups(){db.ref(ROOT+'/Groups').on('value',s=>{const l=document.getElementById('g-list');l.innerHTML='';Object.entries(s.val()||{}).forEach(([id,g])=>l.innerHTML+=`<div class="card row"><div><b>${esc(g.name)}</b><div class="muted">${esc(g.link)}</div></div><button class="danger" onclick="removeNode('${ROOT}/Groups/${id}')">Delete</button></div>`)})}
 
-function addBkash(){const number=v('bd-number'),label=v('bd-label');if(!number)return alert('Enter number');db.ref(ROOT+'/Payment_Methods/BD/numbers').push({number,label});document.getElementById('bd-number').value='';document.getElementById('bd-label').value=''}
-function listenBkash(){db.ref(ROOT+'/Payment_Methods/BD/numbers').on('value',s=>{const l=document.getElementById('bd-list');l.innerHTML='';Object.entries(s.val()||{}).forEach(([id,n])=>l.innerHTML+=`<div class="card row"><div><b>${esc(n.number)}</b><div class="muted">${esc(n.label||'')}</div></div><button class="danger" onclick="removeNode('${ROOT}/Payment_Methods/BD/numbers/${id}')">Delete</button></div>`)})}
+function addBkash(){const number=v('bd-number'),label=v('bd-label');if(!number)return alert('Enter bKash number');db.ref(ROOT+'/Payment_Methods/BD/bkash_numbers').push({number,label});document.getElementById('bd-number').value='';document.getElementById('bd-label').value=''}
+function listenBkash(){db.ref(ROOT+'/Payment_Methods/BD/bkash_numbers').on('value',s=>{const l=document.getElementById('bd-list');l.innerHTML='';Object.entries(s.val()||{}).forEach(([id,n])=>l.innerHTML+=`<div class="card row"><div><b>${esc(n.number)}</b><div class="muted">${esc(n.label||'')}</div></div><button class="danger" onclick="removeNode('${ROOT}/Payment_Methods/BD/bkash_numbers/${id}')">Delete</button></div>`)})}
+function addNagad(){const number=v('nagad-number'),label=v('nagad-label');if(!number)return alert('Enter Nagad number');db.ref(ROOT+'/Payment_Methods/BD/nagad_numbers').push({number,label});document.getElementById('nagad-number').value='';document.getElementById('nagad-label').value=''}
+function listenNagad(){db.ref(ROOT+'/Payment_Methods/BD/nagad_numbers').on('value',s=>{const l=document.getElementById('nagad-list');l.innerHTML='';Object.entries(s.val()||{}).forEach(([id,n])=>l.innerHTML+=`<div class="card row"><div><b>${esc(n.number)}</b><div class="muted">${esc(n.label||'')}</div></div><button class="danger" onclick="removeNode('${ROOT}/Payment_Methods/BD/nagad_numbers/${id}')">Delete</button></div>`)})}
 async function uploadQR(){const f=document.getElementById('in-qr-file').files[0];if(!f)return alert('Choose image');const b64=await toBase64(f);const fd=new FormData();fd.append('key',IMGBB_API_KEY);fd.append('image',b64.split(',')[1]);const r=await fetch('https://api.imgbb.com/1/upload',{method:'POST',body:fd}).then(x=>x.json());if(!r.data)return alert('Upload failed');db.ref(ROOT+'/Payment_Methods/IN/qr_image_url').set(r.data.url);alert('Saved')}
 function toBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
 function listenQR(){db.ref(ROOT+'/Payment_Methods/IN/qr_image_url').on('value',s=>{const u=s.val();document.getElementById('in-qr-preview').innerHTML=u?`<img src="${u}" style="width:160px;border-radius:10px;margin-top:10px">`:''})}
+function saveSquare(){const number=v('in-square');db.ref(ROOT+'/Payment_Methods/IN/square_number').set(number);alert('Square details saved')}
+function listenSquare(){db.ref(ROOT+'/Payment_Methods/IN/square_number').on('value',s=>document.getElementById('in-square').value=s.val()||'')}
 
 function savePaymentSettings(){db.ref(ROOT+'/Payment_Settings').set({min_bdt:parseFloat(v('min-bdt')||0),min_inr:parseFloat(v('min-inr')||0),duplicate_guard:true})}
 function listenPaymentSettings(){db.ref(ROOT+'/Payment_Settings').on('value',s=>{const x=s.val()||{};document.getElementById('min-bdt').value=x.min_bdt||0;document.getElementById('min-inr').value=x.min_inr||0})}
@@ -648,12 +732,20 @@ function savePromo(){const code=v('pc-code').toUpperCase();if(!code)return alert
 function listenPromos(){db.ref(ROOT+'/Promo_Codes').on('value',s=>{const l=document.getElementById('promo-list');l.innerHTML='';Object.entries(s.val()||{}).forEach(([code,p])=>l.innerHTML+=`<div class="card row"><div><b>${esc(code)}</b><div class="muted">${p.discount_percent||0}% OFF • ${p.active?'Active':'Disabled'}</div></div><div><button class="secondary" onclick="togglePromo('${code}',${!p.active})">${p.active?'Disable':'Enable'}</button><button class="danger" onclick="removeNode('${ROOT}/Promo_Codes/${code}')">Delete</button></div></div>`)})}
 function togglePromo(code,on){db.ref(ROOT+'/Promo_Codes/'+code+'/active').set(on)}
 
-function sendBroadcast(){const m=v('broadcast-msg');if(!m)return alert('Message is empty');const el=document.getElementById('broadcast-status');el.textContent='Sending...';fetch(BOT_SERVER_URL+'/admin/broadcast?key='+encodeURIComponent(ADMIN_PANEL_SECRET),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:m})}).then(r=>r.json()).then(x=>{el.textContent=x.ok?`Sent: ${x.sent}, Failed: ${x.failed}`:`Failed: ${x.error}`}).catch(e=>el.textContent='Failed: '+e.message)}
+function sendBroadcast(){
+  const m=v('broadcast-msg');if(!m)return alert('Message is empty');
+  if(broadcastLastText!==m){broadcastCampaignId=null;broadcastLastText=m}
+  if(!broadcastCampaignId)broadcastCampaignId=crypto.randomUUID?crypto.randomUUID():String(Date.now())+'-'+Math.random().toString(16).slice(2);
+  const el=document.getElementById('broadcast-status');el.textContent='Sending securely from Firebase user index...';
+  apiFetch('/admin/broadcast',{method:'POST',body:JSON.stringify({message:m,campaign_id:broadcastCampaignId})})
+    .then(x=>{el.textContent=x.duplicate?`Already sent: ${x.sent} sent, ${x.failed} failed`:`Sent: ${x.sent}, Failed: ${x.failed}`;document.getElementById('broadcast-msg').dataset.sent='1';})
+    .catch(e=>el.textContent='Failed: '+e.message);
+}
 function listenBroadcastLog(){db.ref(ROOT+'/Broadcast_Log').limitToLast(10).on('value',s=>{const l=document.getElementById('broadcast-log');l.innerHTML='';Object.entries(s.val()||{}).reverse().forEach(([id,x])=>l.innerHTML+=`<div class="card"><b>${esc(x.message)}</b><div class="muted">${x.sent||0} sent • ${x.failed||0} failed • ${esc(x.timestamp||'')}</div></div>`)})}
 
 function saveNotificationSettings(){const days=v('n-days').split(',').map(x=>parseInt(x.trim())).filter(x=>Number.isFinite(x)&&x>=1);db.ref(ROOT+'/Notification_Settings').set({enabled:yn('n-enabled'),days_before:days})}
 function listenNotifications(){db.ref(ROOT+'/Notification_Settings').on('value',s=>{const x=s.val()||{};document.getElementById('n-enabled').value=String(x.enabled!==false);document.getElementById('n-days').value=(x.days_before||[3,1]).join(',')})}
-function runNotifications(){const el=document.getElementById('broadcast-status');el.textContent='Checking notifications...';fetch(BOT_SERVER_URL+'/admin/run_notifications?key='+encodeURIComponent(ADMIN_PANEL_SECRET),{method:'POST'}).then(r=>r.json()).then(x=>el.textContent=x.ok?`Notification check completed for ${x.checked} users.`:`Failed: ${x.error}`).catch(e=>el.textContent='Failed: '+e.message)}
+function runNotifications(){const el=document.getElementById('broadcast-status');el.textContent='Checking notifications...';apiFetch('/admin/run_notifications',{method:'POST'}).then(x=>el.textContent=`Notification check completed for ${x.checked} users.`).catch(e=>el.textContent='Failed: '+e.message)}
 
 function saveReferral(){
   const bot = v('r-bot').replace(/^@/,'').trim();
@@ -763,43 +855,18 @@ async function panelPaymentDecision(id,action,event){
 
 function listenStats(){db.ref(ROOT+'/Users').on('value',s=>document.getElementById('st-users').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Orders').on('value',s=>document.getElementById('st-orders').textContent=Object.keys(s.val()||{}).length);db.ref(ROOT+'/Pending_Payments').on('value',s=>{const d=s.val()||{};const n=Object.values(d).filter(x=>String(x.status||'').toLowerCase()==='pending').length;document.getElementById('st-pending').textContent=n;const b=document.getElementById('nav-pending-badge');if(b){b.textContent=n;b.style.display=n?'inline-flex':'none'}})}
 
-function saveAdminContact(){db.ref(ROOT+'/Admin_Contact').set(v('s-admincontact'))}
-function listenAdminContact(){db.ref(ROOT+'/Admin_Contact').on('value',s=>document.getElementById('s-admincontact').value=s.val()||'')}
+let adminChatRows = [];
+function listenUsers(){db.ref(ROOT+'/Users').on('value',s=>{allUsersCache=s.val()||{};renderUserResults(allUsersCache);document.getElementById('user-count-tag').textContent=Object.keys(allUsersCache).length+' USERS'})}
+function searchUsers(){const q=v('user-search').toLowerCase();renderUserResults(allUsersCache,q)}
+function renderUserResults(data,q=''){const list=Object.entries(data||{}).filter(([uid,u])=>{const hay=[uid,u?.username,u?.name,u?.first_name,u?.last_name,u?.phone,u?.email].join(' ').toLowerCase();return !q||hay.includes(q)}).slice(0,100);const l=document.getElementById('user-results');l.innerHTML=list.length?list.map(([uid,u])=>`<button class="user-card" onclick="selectUser('${esc(uid)}')"><div class="user-main"><b>${esc(u?.name||u?.username||('User '+uid))}</b><small>ID ${esc(uid)}${u?.username?' • @'+esc(u.username):''}</small></div><div class="user-balances"><span class="balance-pill">৳${Number(u?.balance_bdt||0).toLocaleString()}</span><span class="balance-pill">₹${Number(u?.balance_inr||0).toLocaleString()}</span></div></button>`).join(''):'<div class="payment-empty">No matching users.</div>'}
+async function selectUser(uid){selectedUserId=uid;const u=allUsersCache[uid]||{};document.getElementById('user-detail-empty').style.display='none';document.getElementById('user-detail').style.display='block';document.getElementById('selected-user-sub').textContent=(u?.username?'@'+u.username+' • ':'')+'Telegram ID '+uid;document.getElementById('edit-bdt').value=Number(u.balance_bdt||0);document.getElementById('edit-inr').value=Number(u.balance_inr||0);document.getElementById('selected-user-meta').innerHTML=`<div class="detail-row"><span>Total Orders</span><b>${Number(u.total_orders||0)}</b></div><div class="detail-row"><span>Referral Count</span><b>${Number(u.referral_count||0)}</b></div><div class="detail-row"><span>Created</span><b>${esc(u.created_at||'—')}</b></div><div class="detail-row"><span>State</span><b>${esc(JSON.stringify(u.state||null))}</b></div>`;loadSelectedUserActivity(uid)}
+async function saveSelectedUserBalance(){if(!selectedUserId)return alert('Select a user first');const b=parseFloat(document.getElementById('edit-bdt').value||0),i=parseFloat(document.getElementById('edit-inr').value||0);if(!Number.isFinite(b)||b<0||!Number.isFinite(i)||i<0)return alert('Enter valid balances');try{await db.ref(ROOT+'/Users/'+selectedUserId).update({balance_bdt:b,balance_inr:i,balance_updated_by:auth.currentUser?.email||'admin',balance_updated_at:new Date().toISOString()});showToast('User balance updated.','success')}catch(e){showToast('Balance update failed: '+e.message,'danger')}}
+function loadSelectedUserActivity(uid){db.ref(ROOT+'/Orders').once('value').then(s=>{const rows=Object.entries(s.val()||{}).filter(([,o])=>String(o.user_id)===String(uid)).slice(-12).reverse();document.getElementById('selected-user-orders').innerHTML=rows.length?rows.map(([id,o])=>`<div class="card"><b>${esc(o.product_label||'Order')}</b><div class="muted">${esc(o.net_amount)} ${esc(o.currency||'')} • ${esc(o.status||'')} • ${esc(o.timestamp||'')}</div></div>`).join(''):'<div class="payment-empty">No orders.</div>'});db.ref(ROOT+'/User_Keys/'+uid).once('value').then(s=>{const rows=Object.values(s.val()||{}).slice(-12).reverse();document.getElementById('selected-user-keys').innerHTML=rows.length?rows.map(o=>`<div class="card"><b>${esc(o.product_label||'Key')}</b><div class="muted"><code>${esc(o.key||'')}</code> • ${esc(o.expiry||'')}</div></div>`).join(''):'<div class="payment-empty">No keys.</div>'})}
+function listenMaintenance(){db.ref(ROOT+'/System/Maintenance').on('value',s=>{const x=s.val()||{};const on=!!x.enabled;document.getElementById('maintenance-enabled').checked=on;document.getElementById('maintenance-message').value=x.message||'';const chip=document.getElementById('maintenance-status-chip');chip.textContent=on?'ON':'OFF';chip.className='hero-status '+(on?'':'green');const pill=document.getElementById('top-maintenance-pill');pill.style.display=on?'inline-flex':'none'})}
+function saveMaintenance(){const enabled=document.getElementById('maintenance-enabled').checked;const message=v('maintenance-message')||'Bot is under maintenance right now. Please try again later.';db.ref(ROOT+'/System/Maintenance').set({enabled,message,updated_at:new Date().toISOString(),updated_by:auth.currentUser?.email||'admin'}).then(()=>showToast(enabled?'Maintenance enabled.':'Maintenance disabled.','success')).catch(e=>showToast('Failed: '+e.message,'danger'))}
 
-function validLink(url){return /^(https?:\/\/)/i.test(String(url||'').trim())}
-function saveDownloadLinks(){
-  const aim=v('link-aim-ai'), carrom=v('link-carrom'), setup=v('link-setup');
-  if(aim && !validLink(aim)) return alert('Aim Ai Engine Apk link must start with http:// or https://');
-  if(carrom && !validLink(carrom)) return alert('Carrom Pool Apk link must start with http:// or https://');
-  if(setup && !validLink(setup)) return alert('Set Up Video link must start with http:// or https://');
-  db.ref(ROOT+'/Download_Links').set({
-    aim_ai_engine_apk:aim,
-    carrom_pool_apk:carrom,
-    setup_video:setup,
-    updated_at:new Date().toISOString()
-  }).then(()=>{
-    document.getElementById('link-aim-ai-status').textContent='Saved ✅';
-    document.getElementById('link-carrom-status').textContent='Saved ✅';
-    document.getElementById('link-setup-status').textContent='Saved ✅';
-    listenDownloadLinks();
-  }).catch(e=>{
-    document.getElementById('link-aim-ai-status').textContent='Failed: '+e.message;
-  });
-}
-function listenDownloadLinks(){
-  db.ref(ROOT+'/Download_Links').once('value').then(s=>{
-    const x=s.val()||{};
-    document.getElementById('link-aim-ai').value=x.aim_ai_engine_apk||'';
-    document.getElementById('link-carrom').value=x.carrom_pool_apk||'';
-    document.getElementById('link-setup').value=x.setup_video||'';
-    const rows=[
-      ['Aim Ai Engine Apk',x.aim_ai_engine_apk],
-      ['Carrom Pool Apk',x.carrom_pool_apk],
-      ['Set Up Video',x.setup_video]
-    ];
-    document.getElementById('storage-status').innerHTML=rows.map(([label,url])=>`<div class="card row"><div><b>${esc(label)}</b><div class="muted">${url?`<a href="${esc(url)}" target="_blank" rel="noopener">${esc(url)}</a>`:'Not configured'}</div></div><span class="status-chip">${url?'Ready':'Missing'}</span></div>`).join('');
-  }).catch(e=>document.getElementById('storage-status').textContent='Failed: '+e.message);
-}
+document.getElementById('maintenance-enabled')?.addEventListener('change',()=>{const chip=document.getElementById('maintenance-status-chip');const on=document.getElementById('maintenance-enabled').checked;chip.textContent=on?'ON':'OFF'});
+document.getElementById('broadcast-msg')?.addEventListener('input',()=>{broadcastLastText=document.getElementById('broadcast-msg').value;broadcastCampaignId=null;document.getElementById('broadcast-msg').dataset.sent='0'});
 
 function removeNode(path){if(confirm('Delete this item?'))db.ref(path).remove()}
 function esc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
