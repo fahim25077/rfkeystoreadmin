@@ -396,6 +396,7 @@
           <button class="nav-item" data-tab="products"><i class="fa-solid fa-box-open"></i><span>Products</span></button>
           <button class="nav-item" data-tab="offer"><i class="fa-solid fa-fire"></i><span>Latest Offer</span><span class="nav-badge">HOT</span></button>
           <button class="nav-item" data-tab="promo"><i class="fa-solid fa-ticket"></i><span>Promo Codes</span></button>
+           <button class="nav-item" data-tab="redeem"><i class="fa-solid fa-gift"></i><span>Redeem Codes</span></button>
           <button class="nav-item" data-tab="reseller"><i class="fa-solid fa-handshake"></i><span>Reseller</span></button>
 
           <div class="side-label spaced">MESSAGING</div>
@@ -596,6 +597,24 @@
           <div id="promo-list" class="list-stack"></div>
         </section>
 
+        <!-- Redeem Codes -->
+        <section class="panel page-card" id="tab-redeem">
+          <div class="page-head"><div><div class="eyebrow accent">CREDIT CODES</div><h2>Redeem Codes</h2><p class="sub">Create one-time or multi-use codes that add BDT or INR to a user's balance.</p></div></div>
+          <div class="form-card">
+            <div class="form-grid">
+              <div class="field"><label>Code</label><input id="rc-code" placeholder="RF100" autocomplete="off"></div>
+              <div class="field"><label>Currency</label><select id="rc-currency"><option value="BDT">BDT</option><option value="INR">INR</option></select></div>
+              <div class="field"><label>Amount</label><input id="rc-amount" type="number" step="0.01" placeholder="100"></div>
+              <div class="field"><label>Max Uses (1 = one-time)</label><input id="rc-max-uses" type="number" min="1" value="1"></div>
+              <div class="field"><label>Expiry (optional)</label><input id="rc-expires" type="datetime-local"></div>
+              <div class="field"><label>Status</label><select id="rc-active"><option value="true">Active</option><option value="false">Disabled</option></select></div>
+            </div>
+            <button class="btn btn-primary" onclick="saveRedeemCode()"><i class="fa-solid fa-floppy-disk"></i> Create Redeem Code</button>
+          </div>
+          <div class="list-heading"><div><h3>Existing Codes</h3><p class="muted">Manage current redeem codes.</p></div><button class="btn btn-secondary small-btn" onclick="listenRedeemCodes()"><i class="fa-solid fa-rotate"></i> Refresh</button></div>
+          <div id="redeem-list" class="list-stack"></div>
+        </section>
+
         <!-- Reseller -->
         <section class="panel page-card" id="tab-reseller">
           <div class="page-head"><div><div class="eyebrow accent">RESELLER</div><h2>Reseller Configuration</h2><p class="sub">Set up reseller bot link and reseller price plans.</p></div></div>
@@ -709,6 +728,15 @@
           </div>
           
           <div class="form-card narrow">
+            <h3>India Sub Admin</h3>
+            <p class="muted" style="margin-bottom:15px">These Telegram IDs receive and can review only India (INR) payment requests. Master admin still receives all payments.</p>
+            <div class="field"><label>India Sub Admin Telegram IDs</label><textarea id="india-admin-ids" placeholder="123456789, 987654321" style="min-height:90px"></textarea></div>
+            <button class="btn btn-primary" onclick="saveIndiaAdminIds()"><i class="fa-solid fa-user-shield"></i> Save India Admins</button>
+            <div class="field" style="margin-top:14px"><label>India Sub Admin Firebase Emails (optional, comma/new line separated)</label><textarea id="india-admin-emails" placeholder="india-admin@example.com" style="min-height:90px"></textarea></div>
+            <button class="btn btn-secondary" onclick="saveIndiaAdminEmails()"><i class="fa-solid fa-envelope"></i> Save Email Roles</button>
+          </div>
+
+          <div class="form-card narrow">
             <h3>Maintenance Mode</h3>
             <p class="muted" style="margin-bottom:15px">Enable this to lock the bot for non-admins.</p>
             <div class="field"><label>Status</label><select id="mt-enabled"><option value="false">Disabled (Live)</option><option value="true">Enabled (Under Maintenance)</option></select></div>
@@ -756,11 +784,13 @@ function initApp(){
   listenProducts();
   listenOffer();
   listenPromos();
+  listenRedeemCodes();
   listenResellerPlans(); /* NEW */
   listenResellerLink(); /* NEW */
   listenPending();
   listenAdminContact();
   listenMaintenance(); /* NEW */
+  listenIndiaAdminIds();
   listenPaymentSettings();
   listenNotifications();
   listenReferral();
@@ -807,6 +837,49 @@ function listenOffer(){db.ref(ROOT+'/Latest_Offer').on('value',s=>{const o=s.val
 function savePromo(){const code=v('pc-code').toUpperCase();if(!code)return alert('Enter code');db.ref(ROOT+'/Promo_Codes/'+code).set({code,discount_percent:parseFloat(v('pc-percent')||0),active:yn('pc-active'),starts_at:iso('pc-start'),ends_at:iso('pc-end'),updated_at:new Date().toISOString()}); showToast('Promo Code Saved');}
 function listenPromos(){db.ref(ROOT+'/Promo_Codes').on('value',s=>{const l=document.getElementById('promo-list');l.innerHTML='';Object.entries(s.val()||{}).forEach(([code,p])=>l.innerHTML+=`<div class="card row"><div><b>${esc(code)}</b><div class="muted">${p.discount_percent||0}% OFF • ${p.active?'Active':'Disabled'}</div></div><div><button class="secondary" onclick="togglePromo('${code}',${!p.active})">${p.active?'Disable':'Enable'}</button><button class="danger" onclick="removeNode('${ROOT}/Promo_Codes/${code}')">Delete</button></div></div>`)})}
 function togglePromo(code,on){db.ref(ROOT+'/Promo_Codes/'+code+'/active').set(on)}
+
+/* Redeem Codes */
+function saveRedeemCode(){
+  const code=v('rc-code').toUpperCase();
+  const currency=v('rc-currency');
+  const amount=parseFloat(v('rc-amount')||0);
+  const maxUses=Math.max(1,parseInt(v('rc-max-uses')||1));
+  const expires=iso('rc-expires');
+  if(!code)return alert('Enter code');
+  if(!/^[A-Z0-9_-]{3,32}$/.test(code))return alert('Use only A-Z, 0-9, _ or -');
+  if(!Number.isFinite(amount)||amount<=0)return alert('Enter a valid amount');
+  db.ref(ROOT+'/Redeem_Codes/'+code).set({code,amount,currency,max_uses:maxUses,uses:0,used_by:{},active:yn('rc-active'),expires_at:expires,created_at:new Date().toISOString()})
+    .then(()=>{showToast('Redeem Code Saved');document.getElementById('rc-code').value='';document.getElementById('rc-amount').value='';listenRedeemCodes()})
+    .catch(e=>showToast('Failed: '+e.message,'danger'));
+}
+function listenRedeemCodes(){
+  const l=document.getElementById('redeem-list'); if(!l)return;
+  db.ref(ROOT+'/Redeem_Codes').on('value',s=>{
+    const data=s.val()||{};
+    const entries=Object.entries(data).reverse();
+    if(!entries.length){l.innerHTML='<div class="payment-empty">No redeem codes created yet.</div>';return}
+    l.innerHTML=entries.map(([code,p])=>{
+      const used=Number(p.uses||0), max=Number(p.max_uses||1);
+      return `<div class="card row"><div><b>${esc(code)}</b><div class="muted">${Number(p.amount||0)} ${esc(p.currency||'')} • ${used}/${max} used • ${p.active?'Active':'Disabled'}</div></div><div><button class="secondary" onclick="toggleRedeem('${esc(code)}',${!p.active})">${p.active?'Disable':'Enable'}</button><button class="danger" onclick="removeNode('${ROOT}/Redeem_Codes/${code}')">Delete</button></div></div>`;
+    }).join('');
+  });
+}
+function toggleRedeem(code,on){db.ref(ROOT+'/Redeem_Codes/'+code+'/active').set(on)}
+
+/* India Sub Admin */
+function saveIndiaAdminIds(){
+  const ids=v('india-admin-ids').split(/[ ,\n]+/).map(x=>x.trim()).filter(Boolean);
+  fetch(BOT_SERVER_URL+'/admin/india_admin_ids?key='+encodeURIComponent(ADMIN_PANEL_SECRET),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ids})})
+    .then(r=>r.json()).then(x=>{if(!x.ok)throw new Error(x.error||'Failed');showToast('India sub admins saved.');listenIndiaAdminIds()}).catch(e=>showToast('Failed: '+e.message,'danger'));
+}
+function listenIndiaAdminIds(){
+  fetch(BOT_SERVER_URL+'/admin/india_admin_ids?key='+encodeURIComponent(ADMIN_PANEL_SECRET)).then(r=>r.json()).then(x=>{if(x.ok)document.getElementById('india-admin-ids').value=(x.ids||[]).join(', ')}) .catch(()=>{});
+  db.ref(ROOT+'/Admin_Config/india_admin_emails').once('value').then(s=>document.getElementById('india-admin-emails').value=(s.val()||[]).join(', ')).catch(()=>{});
+}
+function saveIndiaAdminEmails(){
+  const emails=v('india-admin-emails').split(/[ ,\n]+/).map(x=>x.toLowerCase()).filter(x=>x.includes('@'));
+  db.ref(ROOT+'/Admin_Config/india_admin_emails').set(emails).then(()=>{showToast('India email roles saved.');listenPending()}).catch(e=>showToast('Failed: '+e.message,'danger'));
+}
 
 /* Reseller Features */
 function addResellerPlan(){const label=v('rs-label');if(!label)return alert('Enter label');db.ref(ROOT+'/Reseller_Prices').push({duration_label:label,duration_days:parseInt(v('rs-days')||0),price_bdt:parseFloat(v('rs-bdt')||0),price_inr:parseFloat(v('rs-inr')||0)});['rs-label','rs-bdt','rs-inr'].forEach(id=>document.getElementById(id).value='');document.getElementById('rs-days').value='30'; showToast('Reseller Plan Added');}
@@ -869,7 +942,7 @@ function renderPendingPayments(data){
   }).join('');
 }
 function listenPaymentUsers(){db.ref(ROOT+'/Users').on('value',s=>{paymentUsers=s.val()||{};renderPendingPayments(pendingCache)});}
-function listenPending(){db.ref(ROOT+'/Pending_Payments').limitToLast(80).on('value',s=>renderPendingPayments(s.val()||{}));}
+function listenPending(){db.ref(ROOT+'/Admin_Config/india_admin_emails').once('value').then(s=>{window.INDIA_ADMIN_EMAILS=(s.val()||[]).map(x=>String(x).toLowerCase());window.CURRENT_ADMIN_EMAIL=String(auth.currentUser?.email||'').toLowerCase();db.ref(ROOT+'/Pending_Payments').limitToLast(80).on('value',snap=>{const raw=snap.val()||{};const isIndia=window.INDIA_ADMIN_EMAILS.includes(window.CURRENT_ADMIN_EMAIL);const data=isIndia?Object.fromEntries(Object.entries(raw).filter(([,p])=>String(p?.country||'').toUpperCase()==='IN')):raw;renderPendingPayments(data);});}).catch(()=>db.ref(ROOT+'/Pending_Payments').limitToLast(80).on('value',s=>renderPendingPayments(s.val()||{})));}
 
 function openPaymentModal(id){
   const p=pendingCache[id]; if(!p)return; currentPaymentId=id;
@@ -897,6 +970,8 @@ function closeScreenshotFullscreen(){document.getElementById('image-viewer').cla
 async function panelPaymentDecision(id,action,event){
   if(event){event.stopPropagation();event.preventDefault()}
   const p=pendingCache[id];if(!p||String(p.status||'pending')!=='pending')return showToast('Already handled.','danger');
+  const isIndiaAdmin=Array.isArray(window.INDIA_ADMIN_EMAILS)&&window.INDIA_ADMIN_EMAILS.includes(String(auth.currentUser?.email||'').toLowerCase());
+  if(isIndiaAdmin&&String(p.country||'').toUpperCase()!=='IN')return showToast('India sub admin can only review India payments.','danger');
   const word=action==='accepted'?'approve':'reject';
   if(!confirm('Are you sure you want to '+word+' this payment?'))return;
   try{
